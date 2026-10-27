@@ -1,0 +1,6 @@
+{
+  "name": "Bixberry Earning Booster Pro",
+  "description": "Advanced real-time diagnostics, internet and Android battery optimization, live network latency monitoring, and legitimate earning booster for Bixberry residential nodes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

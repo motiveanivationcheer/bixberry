@@ -1,0 +1,365 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User account profile and Bixberry node configuration metadata",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique Firebase Auth identifier for the user",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's registered email address",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name",
+          "maxLength": 100
+        },
+        "bixberryConnected": {
+          "type": "boolean",
+          "description": "Flag indicating if user has connected their Bixberry credentials"
+        },
+        "bixberryEmail": {
+          "type": "string",
+          "description": "Associated Bixberry login email if configured",
+          "maxLength": 256
+        },
+        "bixberryStatus": {
+          "type": "string",
+          "description": "Current verified connection status with Bixberry",
+          "enum": ["disconnected", "pending_verification", "connected", "auth_failed", "api_access_pending"]
+        },
+        "currentBalance": {
+          "type": "number",
+          "description": "Recorded verified balance in USD"
+        },
+        "totalEarned": {
+          "type": "number",
+          "description": "Lifetime total earnings recorded in USD"
+        },
+        "activeNodesCount": {
+          "type": "number",
+          "description": "Number of active residential node devices"
+        },
+        "subscriptionTier": {
+          "type": "string",
+          "description": "Current subscription tier (free, monthly_pro, yearly_pro)",
+          "maxLength": 64
+        },
+        "subscriptionStatus": {
+          "type": "string",
+          "description": "Subscription status (inactive, active, expired, cancelled)",
+          "maxLength": 32
+        },
+        "subscriptionExpiresAt": {
+          "type": "string",
+          "description": "ISO timestamp when the active subscription expires",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of the last profile update"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp when the user profile was initialized"
+        }
+      },
+      "required": ["uid", "email", "bixberryConnected", "bixberryStatus", "updatedAt", "createdAt"]
+    },
+    "balanceSnapshot": {
+      "title": "BalanceSnapshot",
+      "description": "Point-in-time verified balance snapshot from official gateway",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique snapshot ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128
+        },
+        "confirmedBalance": {
+          "type": "number",
+          "description": "Confirmed redeemable balance amount"
+        },
+        "pendingBalance": {
+          "type": "number",
+          "description": "Pending unconfirmed balance amount"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code (e.g. USD)",
+          "maxLength": 16
+        },
+        "source": {
+          "type": "string",
+          "description": "Data source (e.g. bixberry_api, session_sync, manual_audit)",
+          "maxLength": 64
+        },
+        "syncStatus": {
+          "type": "string",
+          "description": "Status of the sync operation (verified, pending_auth, sync_failed)",
+          "maxLength": 32
+        },
+        "syncTimestamp": {
+          "type": "string",
+          "description": "ISO timestamp of synchronization",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "confirmedBalance", "currency", "source", "syncStatus", "syncTimestamp"]
+    },
+    "connectionLog": {
+      "title": "ConnectionLog",
+      "description": "Connection audit log tracking pings, keep-alives, and reconnection events",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Log document unique ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128
+        },
+        "event": {
+          "type": "string",
+          "description": "Type of event (probe, keep_alive, reconnect, disconnect, error)",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "description": "Outcome status (success, failure, timeout)",
+          "maxLength": 32
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Target endpoint URL probed",
+          "maxLength": 256
+        },
+        "latencyMs": {
+          "type": "number",
+          "description": "Measured latency in milliseconds"
+        },
+        "httpStatus": {
+          "type": "number",
+          "description": "HTTP status code returned"
+        },
+        "details": {
+          "type": "string",
+          "description": "Diagnostic details or error message",
+          "maxLength": 500
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO timestamp of the event",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "event", "status", "timestamp"]
+    },
+    "earningRecord": {
+      "title": "EarningRecord",
+      "description": "Historical earning or bandwidth processing session record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Record unique ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128
+        },
+        "date": {
+          "type": "string",
+          "description": "Date formatted YYYY-MM-DD",
+          "maxLength": 32
+        },
+        "dataProcessedMb": {
+          "type": "number",
+          "description": "Megabytes of AI lookups routed through the node"
+        },
+        "uptimeHours": {
+          "type": "number",
+          "description": "Total uptime hours node was online and accepting queries"
+        },
+        "amountEarnedUsd": {
+          "type": "number",
+          "description": "USD earnings generated in this session"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of earnings (confirmed, pending, processing)",
+          "maxLength": 32
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "Unique transaction or batch identifier to prevent duplicates",
+          "maxLength": 128
+        },
+        "isOptimized": {
+          "type": "boolean",
+          "description": "Whether booster optimization policies were active"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Session observation or diagnostic notes",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of record creation"
+        }
+      },
+      "required": ["id", "userId", "date", "dataProcessedMb", "uptimeHours", "amountEarnedUsd", "isOptimized", "createdAt"]
+    },
+    "subscriptionRecord": {
+      "title": "SubscriptionRecord",
+      "description": "User subscription record and verified payment transaction details",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Subscription record ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128
+        },
+        "planId": {
+          "type": "string",
+          "description": "Identifier of the plan (monthly_pro, yearly_pro)",
+          "maxLength": 64
+        },
+        "planName": {
+          "type": "string",
+          "description": "Display name of the plan",
+          "maxLength": 128
+        },
+        "amount": {
+          "type": "number",
+          "description": "Price paid (e.g. 100 for monthly, 1000 for yearly)"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency paid in (USD)",
+          "maxLength": 16
+        },
+        "status": {
+          "type": "string",
+          "description": "Payment and subscription status (active, completed, refunded, expired, cancelled)",
+          "maxLength": 32
+        },
+        "paymentReference": {
+          "type": "string",
+          "description": "Verified transaction reference or provider payment ID",
+          "maxLength": 128
+        },
+        "paymentProvider": {
+          "type": "string",
+          "description": "Payment processor name (e.g. flutterwave, stripe_sandbox)",
+          "maxLength": 64
+        },
+        "startDate": {
+          "type": "string",
+          "description": "ISO timestamp of subscription start",
+          "maxLength": 64
+        },
+        "expiresAt": {
+          "type": "string",
+          "description": "ISO timestamp when current subscription term expires",
+          "maxLength": 64
+        },
+        "autoRenew": {
+          "type": "boolean",
+          "description": "Whether the plan is marked for auto renewal"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "planId", "planName", "amount", "currency", "status", "paymentReference", "startDate", "expiresAt", "createdAt"]
+    },
+    "boosterSetting": {
+      "title": "BoosterSetting",
+      "description": "User preferences for optimizer tools, alerts, and wake lock",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128
+        },
+        "keepAwakeEnabled": {
+          "type": "boolean",
+          "description": "Prevents screen or worker sleep via Screen Wake Lock API"
+        },
+        "autoPingIntervalSec": {
+          "type": "number",
+          "description": "Interval for continuous background latency health check"
+        },
+        "alertOnHighLatency": {
+          "type": "boolean",
+          "description": "Notify when ping exceeds 150ms"
+        },
+        "alertOnDisconnection": {
+          "type": "boolean",
+          "description": "Notify when connection goes offline"
+        },
+        "thermalWatchdogEnabled": {
+          "type": "boolean",
+          "description": "Warn if device is operating under heavy thermal load"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last settings update"
+        }
+      },
+      "required": ["userId", "keepAwakeEnabled", "autoPingIntervalSec", "alertOnHighLatency", "alertOnDisconnection", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "User profile document containing account status and Bixberry credentials meta"
+    },
+    "/users/{userId}/balanceSnapshots/{snapshotId}": {
+      "schema": "balanceSnapshot",
+      "description": "Verified balance records, confirmed vs pending balances, and synchronization audits"
+    },
+    "/users/{userId}/connectionLogs/{logId}": {
+      "schema": "connectionLog",
+      "description": "Periodic network quality, ping, and gateway connection audit logs"
+    },
+    "/users/{userId}/earningRecords/{recordId}": {
+      "schema": "earningRecord",
+      "description": "Historical earnings, data processed, and optimization comparison logs"
+    },
+    "/users/{userId}/subscriptions/{subscriptionId}": {
+      "schema": "subscriptionRecord",
+      "description": "Verified premium subscription records, expiration dates, and payment history"
+    },
+    "/users/{userId}/settings/current": {
+      "schema": "boosterSetting",
+      "description": "Booster system configurations, alert toggles, and watchdog rules"
+    }
+  }
+}

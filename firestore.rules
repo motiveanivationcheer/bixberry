@@ -1,0 +1,177 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global deny-by-default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation for User Profile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'bixberryConnected', 'bixberryStatus', 'updatedAt', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'bixberryConnected', 'bixberryEmail', 'bixberryStatus', 'currentBalance', 'totalEarned', 'activeNodesCount', 'subscriptionTier', 'subscriptionStatus', 'subscriptionExpiresAt', 'updatedAt', 'createdAt']) &&
+        data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid &&
+        data.email is string && data.email.size() <= 256 &&
+        data.bixberryConnected is bool &&
+        data.bixberryStatus in ['disconnected', 'pending_verification', 'connected', 'auth_failed', 'api_access_pending', 'Connected', 'Disconnected', 'Session Expired'] &&
+        (!('bixberryEmail' in data) || (data.bixberryEmail is string && data.bixberryEmail.size() <= 256)) &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('currentBalance' in data) || (data.currentBalance is number && data.currentBalance >= 0)) &&
+        (!('totalEarned' in data) || (data.totalEarned is number && data.totalEarned >= 0)) &&
+        (!('activeNodesCount' in data) || (data.activeNodesCount is number && data.activeNodesCount >= 0)) &&
+        (!('subscriptionTier' in data) || (data.subscriptionTier is string && data.subscriptionTier.size() <= 64)) &&
+        (!('subscriptionStatus' in data) || (data.subscriptionStatus is string && data.subscriptionStatus.size() <= 32)) &&
+        (!('subscriptionExpiresAt' in data) || (data.subscriptionExpiresAt is string && data.subscriptionExpiresAt.size() <= 64)) &&
+        data.updatedAt is string && data.updatedAt.size() <= 64 &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // Validation for Balance Snapshot
+    function isValidBalanceSnapshot(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'confirmedBalance', 'currency', 'source', 'syncStatus', 'syncTimestamp']) &&
+        data.keys().hasOnly(['id', 'userId', 'confirmedBalance', 'pendingBalance', 'currency', 'source', 'syncStatus', 'syncTimestamp']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.confirmedBalance is number && data.confirmedBalance >= 0 &&
+        (!('pendingBalance' in data) || (data.pendingBalance is number && data.pendingBalance >= 0)) &&
+        data.currency is string && data.currency.size() <= 16 &&
+        data.source is string && data.source.size() <= 64 &&
+        data.syncStatus is string && data.syncStatus.size() <= 32 &&
+        data.syncTimestamp is string && data.syncTimestamp.size() <= 64;
+    }
+
+    // Validation for Connection Log
+    function isValidConnectionLog(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'event', 'status', 'timestamp']) &&
+        data.keys().hasOnly(['id', 'userId', 'event', 'status', 'endpoint', 'latencyMs', 'httpStatus', 'details', 'timestamp']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.event is string && data.event.size() <= 64 &&
+        data.status is string && data.status.size() <= 32 &&
+        (!('endpoint' in data) || (data.endpoint is string && data.endpoint.size() <= 256)) &&
+        (!('latencyMs' in data) || (data.latencyMs is number && data.latencyMs >= 0)) &&
+        (!('httpStatus' in data) || (data.httpStatus is number && data.httpStatus >= 0)) &&
+        (!('details' in data) || (data.details is string && data.details.size() <= 500)) &&
+        data.timestamp is string && data.timestamp.size() <= 64;
+    }
+
+    // Validation for Earning Record
+    function isValidEarningRecord(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'date', 'dataProcessedMb', 'uptimeHours', 'amountEarnedUsd', 'isOptimized', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'userId', 'date', 'dataProcessedMb', 'uptimeHours', 'amountEarnedUsd', 'status', 'transactionId', 'isOptimized', 'notes', 'createdAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.date is string && data.date.size() <= 32 &&
+        data.dataProcessedMb is number && data.dataProcessedMb >= 0 &&
+        data.uptimeHours is number && data.uptimeHours >= 0 &&
+        data.amountEarnedUsd is number && data.amountEarnedUsd >= 0 &&
+        (!('status' in data) || (data.status is string && data.status.size() <= 32)) &&
+        (!('transactionId' in data) || (data.transactionId is string && data.transactionId.size() <= 128)) &&
+        data.isOptimized is bool &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // Validation for Subscription Record
+    function isValidSubscriptionRecord(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'planId', 'planName', 'amount', 'currency', 'status', 'paymentReference', 'startDate', 'expiresAt', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'userId', 'planId', 'planName', 'amount', 'currency', 'status', 'paymentReference', 'paymentProvider', 'startDate', 'expiresAt', 'autoRenew', 'createdAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.planId is string && data.planId.size() <= 64 &&
+        data.planName is string && data.planName.size() <= 128 &&
+        data.amount is number && data.amount >= 0 &&
+        data.currency is string && data.currency.size() <= 16 &&
+        data.status is string && data.status.size() <= 32 &&
+        data.paymentReference is string && data.paymentReference.size() <= 128 &&
+        (!('paymentProvider' in data) || (data.paymentProvider is string && data.paymentProvider.size() <= 64)) &&
+        data.startDate is string && data.startDate.size() <= 64 &&
+        data.expiresAt is string && data.expiresAt.size() <= 64 &&
+        (!('autoRenew' in data) || data.autoRenew is bool) &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // Validation for Booster Settings
+    function isValidBoosterSetting(data, userId) {
+      return data.keys().hasAll(['userId', 'keepAwakeEnabled', 'autoPingIntervalSec', 'alertOnHighLatency', 'alertOnDisconnection', 'updatedAt']) &&
+        data.keys().hasOnly(['userId', 'keepAwakeEnabled', 'autoPingIntervalSec', 'alertOnHighLatency', 'alertOnDisconnection', 'thermalWatchdogEnabled', 'updatedAt']) &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.keepAwakeEnabled is bool &&
+        data.autoPingIntervalSec is number && data.autoPingIntervalSec >= 1 && data.autoPingIntervalSec <= 3600 &&
+        data.alertOnHighLatency is bool &&
+        data.alertOnDisconnection is bool &&
+        (!('thermalWatchdogEnabled' in data) || data.thermalWatchdogEnabled is bool) &&
+        data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false; // Users cannot be enumerated
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data) &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.uid == resource.data.uid;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection: Balance Snapshots
+      match /balanceSnapshots/{snapshotId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(snapshotId) && isValidBalanceSnapshot(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(snapshotId) && isValidBalanceSnapshot(request.resource.data, userId) &&
+          request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(snapshotId);
+      }
+
+      // Subcollection: Connection Logs
+      match /connectionLogs/{logId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(logId) && isValidConnectionLog(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(logId) && isValidConnectionLog(request.resource.data, userId) &&
+          request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(logId);
+      }
+
+      // Subcollection: Earning Records
+      match /earningRecords/{recordId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(recordId) && isValidEarningRecord(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(recordId) && isValidEarningRecord(request.resource.data, userId) &&
+          request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(recordId);
+      }
+
+      // Subcollection: Subscriptions
+      match /subscriptions/{subscriptionId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(subscriptionId) && isValidSubscriptionRecord(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(subscriptionId) && isValidSubscriptionRecord(request.resource.data, userId) &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(subscriptionId);
+      }
+
+      // Subcollection: Booster Settings
+      match /settings/{settingId} {
+        allow get, list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(settingId) && isValidBoosterSetting(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(settingId) && isValidBoosterSetting(request.resource.data, userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(settingId);
+      }
+    }
+  }
+}
